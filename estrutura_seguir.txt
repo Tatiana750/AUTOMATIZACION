@@ -1,0 +1,152 @@
+1. Contextualización del Problema
+Los inversionistas individuales y analistas financieros enfrentan el reto de procesar grandes volúmenes de información técnica y fundamental antes de tomar una decisión de compra o venta sobre un activo bursátil. La dispersión de esta información en múltiples fuentes, la complejidad de su interpretación conjunta y el tiempo requerido para su consolidación representan barreras reales para una toma de decisiones oportuna y fundamentada.
+Este proyecto propone una solución que centraliza, calcula e interpreta automáticamente los indicadores más relevantes de una acción cotizada en bolsa, apoyando al usuario con una recomendación basada en reglas derivadas del análisis técnico y fundamental.
+
+2. Objetivo General
+Desarrollar una aplicación web interactiva que, a partir del símbolo bursátil de una acción, consulte datos en tiempo real desde Yahoo Finance, presente métricas técnicas y financieras organizadas por pestañas, y emita una recomendación de compra argumentada mediante un modelo de scoring que pondera de forma transparente cada indicador.
+
+3. Objetivos Específicos
+•	Integrar la API de Yahoo Finance (yfinance) para obtener datos históricos de precios, volumen e información financiera estructurada, con soporte para tickers de Colombia, México y Brasil.
+•	Calcular y visualizar indicadores técnicos clave: RSI, MACD, Bandas de Bollinger, medias móviles (SMA/EMA) y volumen, con ventana temporal configurable (1 mes, 3 meses, 1 año, 5 años).
+•	Extraer y presentar métricas financieras fundamentales: P/E ratio, EPS, deuda/capital, margen neto, ROE y flujo de caja libre.
+•	Implementar un motor de scoring que pondere las métricas de ambas pestañas y produzca una recomendación de compra con nivel de confianza (Comprar / Neutral / Evitar).
+•	Desarrollar un módulo de comparación simultánea de hasta tres acciones, con ranking automático por score y tabla comparativa de indicadores.
+•	Generar un reporte descargable en PDF con un clic, que incluya gráficas, tabla de scoring y justificación por indicador.
+•	Estructurar el código bajo principios de Clean Architecture y modularidad, garantizando mantenibilidad y trazabilidad mediante GitHub.
+
+4. Descripción de Requerimientos
+4.1 Requerimientos Funcionales
+•	El usuario ingresa o selecciona el ticker de una acción con soporte para mercados de EE.UU. y Latinoamérica (ej. AAPL, GOOGL, ECOPETROL.CL, WALMEX.MX, PETR4.SA).
+•	La aplicación muestra tres pestañas: Análisis Técnico, Análisis Fundamental y Recomendación.
+•	La pestaña de análisis técnico incluye gráficas interactivas de precio con indicadores superpuestos y ventana temporal configurable (1 mes, 3 meses, 1 año, 5 años).
+•	La pestaña de análisis fundamental muestra tablas con ratios financieros y comparativas sectoriales cuando estén disponibles.
+•	La pestaña de recomendación presenta el resultado del scoring, la justificación por métrica y un semáforo visual (Comprar / Neutral / Evitar).
+•	Módulo de comparación simultánea de hasta tres acciones, con tabla comparativa de todos los indicadores y ranking por score.
+•	Generación y descarga de reporte en PDF desde cualquier pestaña, con gráficas, tabla de scoring y justificación por indicador.
+•	Histórico de búsquedas en sesión para recuperar análisis previos sin recargar datos desde la API.
+
+4.2 Requerimientos No Funcionales
+•	Tiempo de respuesta inferior a 5 segundos para la carga inicial de datos.
+•	Interfaz responsive, operable desde navegador de escritorio.
+•	Código documentado, modular y versionado en GitHub con historial de commits por integrante.
+•	Cobertura de pruebas unitarias mínima del 70% sobre los módulos de dominio.
+
+5. Arquitectura General
+La aplicación se estructura en tres capas independientes más un módulo transversal de scoring:
+
+► Capa de Datos — data_layer
+Encapsula todas las llamadas a yfinance, normaliza las respuestas y expone funciones puras que retornan dataframes limpios. Ningún otro módulo llama directamente a la API externa.
+
+► Capa de Dominio — technical_engine / fundamental_engine
+Calcula los indicadores sobre los datos normalizados. Aquí reside toda la lógica de negocio, completamente independiente del framework de presentación. Facilita las pruebas unitarias y el reemplazo de fuentes de datos.
+
+► Capa de Presentación — Streamlit + Plotly
+Renderiza las tres pestañas, las gráficas interactivas y el panel de recomendación. No contiene lógica de cálculo; solo consume los outputs de los motores.
+
+► Módulo Transversal — scoring_engine
+Recibe los outputs de los dos motores, aplica pesos configurables y produce el resultado de recomendación con justificación por componente.
+
+6. Organización del Sistema
+La estructura de directorios del repositorio es la siguiente:
+
+stock-analyzer/
+├── app.py                     # Punto de entrada Streamlit
+├── data_layer/
+│   └── yahoo_client.py        # Wrapper yfinance
+├── domain/
+│   ├── technical_engine.py    # RSI, MACD, Bollinger, SMA/EMA
+│   ├── fundamental_engine.py  # Ratios financieros
+│   ├── scoring_engine.py      # Motor de recomendación
+│   └── comparator_engine.py   # Lógica de comparación y ranking
+├── ui/
+│   ├── tab_technical.py
+│   ├── tab_fundamental.py
+│   ├── tab_recommendation.py
+│   └── tab_comparator.py      # Vista comparación de acciones
+├── reports/
+│   └── pdf_generator.py       # Exportación a PDF con reportlab
+├── tests/
+│   ├── test_technical.py
+│   ├── test_scoring.py
+│   └── test_comparator.py
+├── requirements.txt
+└── README.md
+
+7. Librerías Principales
+
+Librería	Rol en el proyecto
+yfinance	Consumo de datos históricos y financieros desde Yahoo Finance
+pandas	Manipulación, normalización y análisis de datos tabulares
+ta / pandas-ta	Cálculo de indicadores técnicos (RSI, MACD, Bollinger, SMA/EMA)
+plotly	Visualizaciones interactivas de gráficas de precios e indicadores
+streamlit	Framework de interfaz web para el dashboard interactivo
+reportlab	Generación del reporte en PDF con gráficas y tabla de scoring
+pytest	Suite de pruebas unitarias para los módulos de dominio
+
+8. Descripción de Funcionalidades Principales
+8.1 Pestaña: Análisis Técnico
+•	Gráfica de velas (candlestick) con Bandas de Bollinger y SMA/EMA superpuestas.
+•	Panel inferior con histograma MACD y línea de señal.
+•	Indicador RSI con zonas de sobrecompra (>70) y sobreventa (<30) marcadas visualmente.
+•	Volumen diario con promedio móvil de 20 ruedas.
+
+8.2 Pestaña: Análisis Fundamental
+•	Tabla de ratios: P/E, P/B, EPS (TTM), margen neto, ROE y deuda/capital.
+•	Comparativa del P/E con la mediana sectorial disponible en Yahoo Finance.
+•	Flujo de caja libre de los últimos 4 trimestres con variación porcentual.
+•	Calificación crediticia y país de domicilio del emisor.
+
+8.3 Pestaña: Recomendación
+•	Semáforo visual: verde (Comprar), amarillo (Neutral), rojo (Evitar).
+•	Score total sobre 100 con desglose por indicador y su peso relativo.
+•	Justificación textual automática por cada componente del scoring.
+•	Aviso de descargo de responsabilidad: la recomendación es orientativa y no constituye asesoría financiera profesional.
+8.4 Módulo Comparador de Acciones
+•	Selección simultánea de hasta tres tickers desde el panel lateral.
+•	Tabla comparativa con todos los indicadores técnicos y fundamentales lado a lado.
+•	Ranking automático de las acciones por score total, resaltando la mejor opción.
+•	Gráfica de barras comparativa de los scores desagregados por categoría (técnico vs. fundamental).
+
+8.5 Exportación a PDF
+•	Botón de descarga disponible en todas las pestañas, generando el reporte con un clic.
+•	El PDF incluye: portada con ticker y fecha, gráficas de precio e indicadores, tabla de ratios fundamentales, desglose del scoring y recomendación final con descargo de responsabilidad.
+•	Generado con reportlab directamente en el servidor, sin dependencia de navegador.
+
+9. Motor de Scoring
+Cada indicador aporta puntos a una escala de 0–100. La ponderación propuesta es la siguiente:
+
+Indicador	Categoría	Peso	Criterio positivo
+RSI (Índice de Fuerza Relativa)	Técnico	10%	< 70 y > 30 → compra
+MACD con cruce alcista	Técnico	12%	Línea MACD sobre señal → positivo
+Precio sobre SMA 200	Técnico	12%	Tendencia alcista de largo plazo
+Bollinger: precio en banda baja	Técnico	8%	Posible rebote alcista
+P/E vs. sector	Fundamental	14%	P/E < mediana sectorial → subvalorado
+ROE positivo y creciente	Fundamental	14%	Rentabilidad sostenida del patrimonio
+Deuda/Capital controlada	Fundamental	12%	Ratio < 1.5 → salud financiera
+Flujo de Caja Libre positivo	Fundamental	18%	Generación real de efectivo operacional
+
+Categorías de resultado: Comprar (≥65 puntos) | Neutral (40–64 puntos) | Evitar (<40 puntos)
+
+10. Gestión del Proyecto con GitHub
+El repositorio se organizará con tres ramas principales:
+•	main: producción estable, solo recibe merges desde develop.
+•	develop: integración continua de funcionalidades.
+•	feature/*: ramas individuales por funcionalidad (ej. feature/technical-engine, feature/scoring).
+
+Los commits seguirán la convención Conventional Commits (feat:, fix:, docs:, test:) y serán descriptivos y frecuentes. Cada integrante trabajará en su rama y abrirá Pull Requests con revisión cruzada antes de hacer merge.
+
+11. Tecnologías Utilizadas
+•	Lenguaje: Python 3.11+
+•	Framework de UI: Streamlit
+•	Visualización: Plotly Express / Plotly Graph Objects
+•	Fuente de datos: Yahoo Finance vía yfinance
+•	Análisis técnico: pandas-ta
+•	Exportación PDF: reportlab
+•	Testing: pytest + pytest-cov
+•	Control de versiones: Git / GitHub
+•	Entorno: Python virtual environment (venv)
+
+12. Resultados Esperados
+Al finalizar el proyecto se esperará contar con una aplicación completamente operativa que centralice el análisis técnico y fundamental de cualquier acción listada en Yahoo Finance, facilitando la toma de decisiones de inversión mediante una interfaz clara e intuitiva. El motor de scoring aportará transparencia al proceso al mostrar el peso y la contribución de cada indicador, fomentando la comprensión financiera del usuario.
+Desde el punto de vista académico, el proyecto demostrará la aplicación práctica de técnicas de inteligencia artificial orientadas al análisis financiero, integradas en una arquitectura de software limpia y mantenible.
+
